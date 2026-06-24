@@ -108,6 +108,7 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
 
         {/* Scroll nudge */}
         <div className="absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1.5">
+          <span className="text-[11px] uppercase tracking-widest text-ink-500">Explore</span>
           <div className="flex h-8 w-5 items-start justify-center rounded-full border border-ink-600 pt-1.5">
             <div className="h-1.5 w-0.5 animate-bounce rounded-full bg-ink-500" />
           </div>
@@ -175,6 +176,41 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
           })}
         </div>
       </section>
+
+      {/* About strip */}
+      <section className="mx-5 mb-12 overflow-hidden rounded-2xl border border-ink-700/60 bg-gradient-to-br from-ink-900 to-ink-850">
+        <div className="border-b border-ink-700/60 px-5 py-5">
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-ink-500">About</p>
+          <h3 className="font-display text-xl font-bold text-white">Believers House</h3>
+        </div>
+        <div className="space-y-4 px-5 py-5">
+          <p className="text-[14px] leading-relaxed text-ink-300">
+            A multi-generational, multi-ethnic church in Halifax, Nova Scotia, planted in October 2020. Non-denominational and called to welcome people of every nation, every tongue, and every generation.
+          </p>
+          <div className="flex items-start gap-2.5 text-[13px] text-ink-400">
+            <MapPin size={15} className="mt-0.5 shrink-0 text-gold-400/70" />
+            <span>264 Bedford Hwy, Suite 101<br />Halifax, NS B3M 2K7</span>
+          </div>
+          <a
+            href="https://www.believershouse.church"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-gold-400 transition hover:text-gold-300"
+          >
+            believershouse.church
+            <ExternalLink size={13} />
+          </a>
+        </div>
+      </section>
+
+      {/* Bottom CTA repeat */}
+      <div className="flex flex-col items-center gap-4 px-6 pb-6 text-center">
+        <button
+          onClick={onSignIn}
+          className="w-full max-w-xs rounded-2xl bg-gradient-to-r from-gold-400 to-gold-500 py-4 text-[15px] font-bold text-black shadow-lg shadow-gold-500/20 transition hover:scale-105 active:scale-95"
+        >
+          Sign In to BH Connect
+        </button>
         <p className="text-[12px] text-ink-600">
           This app is for Believers House members &amp; leadership only.
         </p>
