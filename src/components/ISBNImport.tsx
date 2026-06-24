@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Upload,
@@ -276,7 +277,7 @@ export function ISBNImport({ onClose, onImported }: ISBNImportProps) {
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex flex-col bg-ink-950">
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-ink-700 bg-ink-900 px-4 py-3 pt-[calc(env(safe-area-inset-top)+12px)]">
@@ -550,7 +551,7 @@ export function ISBNImport({ onClose, onImported }: ISBNImportProps) {
         )}
       </div>
     </div>
-  );
+  , document.body);
 }
 
 interface ReviewRowProps {

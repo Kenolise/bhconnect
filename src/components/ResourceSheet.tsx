@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Trash2,
   Edit3,
@@ -39,12 +40,7 @@ export function ResourceSheet({ resource, onClose, onEdit, onDelete }: ResourceS
     day: 'numeric',
   });
 
-  return (
-    /*
-     * Outer: fixed viewport overlay, always anchors to the viewport (not the document).
-     * flex items-end = sheet anchors to bottom on mobile.
-     * sm:items-center = sheet is vertically centred on desktop.
-     */
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       {/* Backdrop */}
       <div
@@ -210,5 +206,5 @@ export function ResourceSheet({ resource, onClose, onEdit, onDelete }: ResourceS
         </div>
       </div>
     </div>
-  );
+  , document.body);
 }

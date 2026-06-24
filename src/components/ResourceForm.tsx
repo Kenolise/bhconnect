@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Loader2, Search, ArrowLeft } from 'lucide-react';
 import { CHRISTIAN_TOPICS, type ChristianTopic, type Resource, type ResourceInput } from '../types';
 
@@ -134,7 +135,7 @@ export function ResourceForm({ resource, onClose, onSubmit }: ResourceFormProps)
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 max-h-[90vh] w-full max-w-md animate-scale-in overflow-y-auto rounded-t-3xl border border-ink-700 bg-ink-900 sm:rounded-3xl">
@@ -332,7 +333,7 @@ export function ResourceForm({ resource, onClose, onSubmit }: ResourceFormProps)
         </form>
       </div>
     </div>
-  );
+  , document.body);
 }
 
 function Field({
