@@ -2,12 +2,16 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 
 const STORAGE_KEY = 'bh_connect_user';
 
+const ADMIN_EMAILS = new Set(['admin@believershouse.church', 'pastor@believershouse.church']);
+
 interface AuthUser {
   email: string;
+  isAdmin: boolean;
 }
 
 interface AuthContextValue {
   user: AuthUser | null;
+  isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => void;
 }
@@ -38,7 +42,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   const signIn = useCallback(async (email: string, _password: string) => {
-    const newUser: AuthUser = { email: email.trim().toLowerCase() };
+    const normalized = email.trim().toLowerCase();
+    const newUser: AuthUser = { email: normalized, isAdmin: ADMIN_EMAILS.has(normalized) };
     setUser(newUser);
   }, []);
 
@@ -46,8 +51,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const isAdmin = user?.isAdmin ?? false;
+
   return (
-    <AuthContext.Provider value={{ user, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, isAdmin, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

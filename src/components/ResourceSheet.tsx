@@ -19,9 +19,10 @@ interface ResourceSheetProps {
   onClose: () => void;
   onEdit: (resource: Resource) => void;
   onDelete: (resource: Resource) => void;
+  isAdmin: boolean;
 }
 
-export function ResourceSheet({ resource, onClose, onEdit, onDelete }: ResourceSheetProps) {
+export function ResourceSheet({ resource, onClose, onEdit, onDelete, isAdmin }: ResourceSheetProps) {
   useEffect(() => {
     if (!resource) return;
     document.body.style.overflow = 'hidden';
@@ -185,23 +186,25 @@ export function ResourceSheet({ resource, onClose, onEdit, onDelete }: ResourceS
               </div>
             )}
 
-            {/* Actions */}
-            <div className="mt-6 flex gap-3 border-t border-ink-700 pt-5">
-              <button
-                onClick={() => onEdit(resource)}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-ink-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-ink-700"
-              >
-                <Edit3 size={16} />
-                Edit
-              </button>
-              <button
-                onClick={() => onDelete(resource)}
-                className="flex items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-3 text-sm font-semibold text-red-400 transition hover:bg-red-500/20"
-              >
-                <Trash2 size={16} />
-                Delete
-              </button>
-            </div>
+            {/* Actions — admin only */}
+            {isAdmin && (
+              <div className="mt-6 flex gap-3 border-t border-ink-700 pt-5">
+                <button
+                  onClick={() => onEdit(resource)}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-ink-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-ink-700"
+                >
+                  <Edit3 size={16} />
+                  Edit
+                </button>
+                <button
+                  onClick={() => onDelete(resource)}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-3 text-sm font-semibold text-red-400 transition hover:bg-red-500/20"
+                >
+                  <Trash2 size={16} />
+                  Delete
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

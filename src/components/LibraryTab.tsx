@@ -10,6 +10,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 import { CHRISTIAN_TOPICS, type ChristianTopic, type Resource, type ResourceInput } from '../types';
 import { ResourceCard } from './ResourceCard';
 import { ResourceSheet } from './ResourceSheet';
@@ -25,6 +26,7 @@ const SORT_LABELS: Record<SortOption, string> = {
 };
 
 export function LibraryTab() {
+  const { isAdmin } = useAuth();
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -143,21 +145,25 @@ export function LibraryTab() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setImportOpen(true)}
-            className="flex h-11 items-center gap-1.5 rounded-xl border border-gold-400/30 bg-gold-400/10 px-3 text-[13px] font-semibold text-gold-300 transition hover:bg-gold-400/20"
-            aria-label="Import books"
-          >
-            <Upload size={15} />
-            Import
-          </button>
-          <button
-            onClick={handleAdd}
-            className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-gold-400 to-gold-500 text-black shadow-lg shadow-gold-500/20 transition hover:scale-105 active:scale-95"
-            aria-label="Add book"
-          >
-            <Plus size={22} strokeWidth={2.5} />
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setImportOpen(true)}
+              className="flex h-11 items-center gap-1.5 rounded-xl border border-gold-400/30 bg-gold-400/10 px-3 text-[13px] font-semibold text-gold-300 transition hover:bg-gold-400/20"
+              aria-label="Import books"
+            >
+              <Upload size={15} />
+              Import
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={handleAdd}
+              className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-gold-400 to-gold-500 text-black shadow-lg shadow-gold-500/20 transition hover:scale-105 active:scale-95"
+              aria-label="Add book"
+            >
+              <Plus size={22} strokeWidth={2.5} />
+            </button>
+          )}
         </div>
       </header>
 
@@ -338,9 +344,9 @@ export function LibraryTab() {
           <p className="mt-1 text-[13px] text-ink-500">
             {query || activeTopic !== 'All'
               ? 'Try a different filter or search term.'
-              : 'Import a CSV or tap + to add your first book.'}
+              : 'No books have been added yet.'}
           </p>
-          {!query && activeTopic === 'All' && (
+          {isAdmin && !query && activeTopic === 'All' && (
             <div className="mt-5 flex gap-3">
               <button
                 onClick={() => setImportOpen(true)}
@@ -376,6 +382,7 @@ export function LibraryTab() {
         onClose={() => setSelectedResource(null)}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        isAdmin={isAdmin}
       />
 
       {/* Add/Edit form */}
