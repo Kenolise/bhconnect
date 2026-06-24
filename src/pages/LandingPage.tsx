@@ -1,4 +1,4 @@
-import { Library, Users, Mic, MessageSquare, HeartHandshake, ChevronRight, MapPin, ExternalLink } from 'lucide-react';
+import { Library, Users, Mic, MessageSquare, HeartHandshake, ChevronRight } from 'lucide-react';
 
 interface LandingPageProps {
   onSignIn: () => void;
@@ -41,7 +41,7 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
   return (
     <div className="min-h-screen bg-ink-950 pb-16 text-white">
       {/* Hero */}
-      <section className="relative flex min-h-[92svh] flex-col items-center justify-center overflow-hidden px-6 pt-16 text-center">
+      <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 text-center">
         {/* Background glows */}
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute left-1/2 top-0 h-[480px] w-[480px] -translate-x-1/2 rounded-full bg-gold-400/6 blur-[120px]" />
@@ -72,7 +72,7 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
         </div>
 
         {/* Wordmark */}
-        <div className="mb-2 flex items-center gap-2.5">
+        <div className="mb-2">
           <span className="font-display text-4xl font-bold tracking-tight text-white">
             BH Connect
           </span>
@@ -88,15 +88,6 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
           <div className="h-px w-16 bg-gradient-to-l from-transparent to-gold-400/40" />
         </div>
 
-        {/* Tagline */}
-        <h1 className="font-display mb-4 max-w-xs text-3xl font-bold leading-tight text-white">
-          Your church,<br />
-          <span className="text-gold-400">closer than ever.</span>
-        </h1>
-        <p className="mb-10 max-w-[280px] text-[15px] leading-relaxed text-ink-400">
-          For the members and leadership of Believers House — everything you need, in one place.
-        </p>
-
         {/* CTA */}
         <button
           onClick={onSignIn}
@@ -105,14 +96,6 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
           Sign In to BH Connect
           <ChevronRight size={20} strokeWidth={2.5} className="transition-transform duration-200 group-hover:translate-x-0.5" />
         </button>
-
-        {/* Scroll nudge */}
-        <div className="absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1.5">
-          <span className="text-[11px] uppercase tracking-widest text-ink-500">Explore</span>
-          <div className="flex h-8 w-5 items-start justify-center rounded-full border border-ink-600 pt-1.5">
-            <div className="h-1.5 w-0.5 animate-bounce rounded-full bg-ink-500" />
-          </div>
-        </div>
       </section>
 
       {/* Mission banner */}
@@ -153,17 +136,14 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span
-                      className={`text-[15px] font-semibold ${mod.live ? 'text-white' : 'text-ink-300'}`}
-                    >
+                    <span className={`text-[15px] font-semibold ${mod.live ? 'text-white' : 'text-ink-300'}`}>
                       {mod.label}
                     </span>
-                    {mod.live && (
+                    {mod.live ? (
                       <span className="rounded-full border border-teal-500/40 bg-teal-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-teal-400">
                         Live
                       </span>
-                    )}
-                    {!mod.live && (
+                    ) : (
                       <span className="rounded-full border border-ink-600 bg-ink-800 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-500">
                         Soon
                       </span>
@@ -176,45 +156,6 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
           })}
         </div>
       </section>
-
-      {/* About strip */}
-      <section className="mx-5 mb-12 overflow-hidden rounded-2xl border border-ink-700/60 bg-gradient-to-br from-ink-900 to-ink-850">
-        <div className="border-b border-ink-700/60 px-5 py-5">
-          <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-ink-500">About</p>
-          <h3 className="font-display text-xl font-bold text-white">Believers House</h3>
-        </div>
-        <div className="space-y-4 px-5 py-5">
-          <p className="text-[14px] leading-relaxed text-ink-300">
-            A multi-generational, multi-ethnic church in Halifax, Nova Scotia, planted in October 2020. Non-denominational and called to welcome people of every nation, every tongue, and every generation.
-          </p>
-          <div className="flex items-start gap-2.5 text-[13px] text-ink-400">
-            <MapPin size={15} className="mt-0.5 shrink-0 text-gold-400/70" />
-            <span>264 Bedford Hwy, Suite 101<br />Halifax, NS B3M 2K7</span>
-          </div>
-          <a
-            href="https://www.believershouse.church"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-gold-400 transition hover:text-gold-300"
-          >
-            believershouse.church
-            <ExternalLink size={13} />
-          </a>
-        </div>
-      </section>
-
-      {/* Bottom CTA repeat */}
-      <div className="flex flex-col items-center gap-4 px-6 pb-6 text-center">
-        <button
-          onClick={onSignIn}
-          className="w-full max-w-xs rounded-2xl bg-gradient-to-r from-gold-400 to-gold-500 py-4 text-[15px] font-bold text-black shadow-lg shadow-gold-500/20 transition hover:scale-105 active:scale-95"
-        >
-          Sign In to BH Connect
-        </button>
-        <p className="text-[12px] text-ink-600">
-          This app is for Believers House members &amp; leadership only.
-        </p>
-      </div>
     </div>
   );
 }
