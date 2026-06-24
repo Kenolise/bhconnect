@@ -76,14 +76,9 @@ export function ResourceForm({ resource, onClose, onSubmit }: ResourceFormProps)
   }, [resource]);
 
   useEffect(() => {
-    const scrollY = window.scrollY;
-    const html = document.documentElement;
-    html.style.top = `-${scrollY}px`;
-    html.classList.add('modal-open');
+    document.body.style.overflow = 'hidden';
     return () => {
-      html.classList.remove('modal-open');
-      html.style.top = '';
-      window.scrollTo({ top: scrollY, behavior: 'instant' as ScrollBehavior });
+      document.body.style.overflow = '';
     };
   }, []);
 

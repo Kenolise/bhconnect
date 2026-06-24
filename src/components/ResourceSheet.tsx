@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import {
   Trash2,
   Edit3,
@@ -21,21 +21,11 @@ interface ResourceSheetProps {
 }
 
 export function ResourceSheet({ resource, onClose, onEdit, onDelete }: ResourceSheetProps) {
-  const scrollYRef = useRef(0);
-
   useEffect(() => {
     if (!resource) return;
-
-    // iOS-safe scroll lock: pin the HTML element at the current scroll position
-    scrollYRef.current = window.scrollY;
-    const html = document.documentElement;
-    html.style.top = `-${scrollYRef.current}px`;
-    html.classList.add('modal-open');
-
+    document.body.style.overflow = 'hidden';
     return () => {
-      html.classList.remove('modal-open');
-      html.style.top = '';
-      window.scrollTo({ top: scrollYRef.current, behavior: 'instant' as ScrollBehavior });
+      document.body.style.overflow = '';
     };
   }, [resource]);
 
@@ -50,8 +40,12 @@ export function ResourceSheet({ resource, onClose, onEdit, onDelete }: ResourceS
   });
 
   return (
-    /* Full-viewport overlay */
-    <div className="fixed inset-0 z-50">
+    /*
+     * Outer: fixed viewport overlay, always anchors to the viewport (not the document).
+     * flex items-end = sheet anchors to bottom on mobile.
+     * sm:items-center = sheet is vertically centred on desktop.
+     */
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/75 backdrop-blur-sm"
@@ -59,39 +53,22 @@ export function ResourceSheet({ resource, onClose, onEdit, onDelete }: ResourceS
       />
 
       {/*
-        Sheet panel:
-        Mobile  → pinned to bottom, slides up, rounded top corners only
-        Desktop → centered with translate, rounded all corners, max-width capped
-        max-h uses dvh (dynamic viewport height) so browser chrome doesn't
-        cause the panel to overflow off-screen on mobile Safari.
-      */}
-      <div
-        className={[
-          'absolute left-0 right-0 bottom-0',
-          'sm:left-1/2 sm:bottom-auto sm:top-1/2',
-          'sm:-translate-x-1/2 sm:-translate-y-1/2',
-          'w-full sm:max-w-md',
-          'max-h-[92dvh] sm:max-h-[88dvh]',
-          'flex flex-col',
-          'rounded-t-3xl sm:rounded-3xl',
-          'border border-ink-700 bg-ink-900',
-          'shadow-2xl shadow-black/60',
-          'animate-sheet-up sm:animate-sheet-fade',
-        ].join(' ')}
-      >
-        {/* Drag handle — mobile only */}
+       * Sheet panel — no absolute/translate tricks, just a flex child.
+       * The parent flex container positions it correctly on every screen size.
+       * max-h-[85vh] caps height; overflow-y-auto on the inner div handles scroll.
+       */}
+      <div className="relative z-10 flex w-full max-w-md flex-col rounded-t-3xl border border-ink-700 bg-ink-900 shadow-2xl shadow-black/60 animate-scale-in sm:rounded-3xl" style={{ maxHeight: '85vh' }}>
+
+        {/* Drag handle — visual hint on mobile */}
         <div className="flex flex-shrink-0 justify-center pt-3 pb-1 sm:hidden" aria-hidden>
           <div className="h-1 w-10 rounded-full bg-ink-600" />
         </div>
 
-        {/* Scrollable area — independent from page scroll */}
-        <div
-          className="flex-1 overflow-y-auto overscroll-contain"
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          style={{ WebkitOverflowScrolling: 'touch' } as any}
-        >
+        {/* Scrollable content area — independent from page scroll */}
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+
           {/* Cover image / colour block */}
-          <div className="relative h-48 w-full flex-shrink-0 overflow-hidden rounded-t-3xl sm:rounded-t-3xl">
+          <div className="relative h-48 w-full flex-shrink-0 overflow-hidden">
             {resource.cover_image_url ? (
               <>
                 <img
@@ -115,7 +92,7 @@ export function ResourceSheet({ resource, onClose, onEdit, onDelete }: ResourceS
               </div>
             )}
 
-            {/* Back / close button */}
+            {/* Close button */}
             <button
               onClick={onClose}
               className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full border border-white/10 bg-black/50 px-3 py-2 text-[13px] font-medium text-white/80 backdrop-blur-sm transition hover:bg-black/70 hover:text-white"
@@ -133,21 +110,15 @@ export function ResourceSheet({ resource, onClose, onEdit, onDelete }: ResourceS
                   : 'bg-amber-500/25 text-amber-300 ring-1 ring-amber-400/30'
               }`}
             >
-              <span
-                className={`h-1.5 w-1.5 rounded-full ${isAvailable ? 'bg-green-400' : 'bg-amber-400'}`}
-              />
+              <span className={`h-1.5 w-1.5 rounded-full ${isAvailable ? 'bg-green-400' : 'bg-amber-400'}`} />
               {isAvailable
                 ? `Available · ${resource.available_copies} of ${resource.total_copies}`
                 : `On Loan · ${resource.available_copies} of ${resource.total_copies} left`}
             </span>
           </div>
 
-          {/* Body content */}
-          <div
-            className="p-5"
-            style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))' }}
-          >
-            {/* Topic pill */}
+          {/* Body */}
+          <div className="p-5 pb-8">
             <span className="mb-3 inline-block rounded-full border border-gold-400/30 bg-gold-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-gold-300">
               {resource.christian_topic}
             </span>
