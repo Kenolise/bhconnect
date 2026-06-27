@@ -1,4 +1,4 @@
-import { Library, Users, Mic, MessageSquare, HeartHandshake, Sparkles } from 'lucide-react';
+import { Library, Users, Mic, MessageSquare, HeartHandshake, ClipboardList, Sparkles } from 'lucide-react';
 import type { TabId } from './types';
 
 export interface TabDef {
@@ -6,6 +6,7 @@ export interface TabDef {
   label: string;
   icon: typeof Library;
   comingSoon?: boolean;
+  adminOnly?: boolean;
   description: string;
 }
 
@@ -43,6 +44,13 @@ export const TABS: TabDef[] = [
     icon: HeartHandshake,
     comingSoon: true,
     description: 'Submit prayer requests, schedule pastoral care conversations, and access confidential support from our pastoral team.',
+  },
+  {
+    id: 'requests',
+    label: 'Requests',
+    icon: ClipboardList,
+    adminOnly: true,
+    description: '',
   },
 ];
 

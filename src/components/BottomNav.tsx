@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Library, Users, Mic, MessageSquare, HeartHandshake } from 'lucide-react';
+import { Library, Users, Mic, MessageSquare, HeartHandshake, ClipboardList } from 'lucide-react';
 import type { TabId } from '../types';
 
 const ICONS: Record<TabId, typeof Library> = {
@@ -8,15 +8,17 @@ const ICONS: Record<TabId, typeof Library> = {
   sermons: Mic,
   comms: MessageSquare,
   pastoral: HeartHandshake,
+  requests: ClipboardList,
 };
 
 interface BottomNavProps {
   activeTab: TabId;
   onTabChange: (tab: TabId) => void;
   tabs: { id: TabId; label: string }[];
+  badges?: Partial<Record<TabId, number>>;
 }
 
-export function BottomNav({ activeTab, onTabChange, tabs }: BottomNavProps) {
+export function BottomNav({ activeTab, onTabChange, tabs, badges }: BottomNavProps) {
   const indicatorRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   useEffect(() => {
@@ -32,6 +34,7 @@ export function BottomNav({ activeTab, onTabChange, tabs }: BottomNavProps) {
           {tabs.map((tab) => {
             const Icon = ICONS[tab.id];
             const isActive = activeTab === tab.id;
+            const badgeCount = badges?.[tab.id] ?? 0;
             return (
               <button
                 key={tab.id}
@@ -43,14 +46,21 @@ export function BottomNav({ activeTab, onTabChange, tabs }: BottomNavProps) {
                 aria-label={tab.label}
                 aria-current={isActive ? 'page' : undefined}
               >
-                <span
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200 ${
-                    isActive
-                      ? 'bg-gold-400/15 text-gold-400 scale-110'
-                      : 'text-ink-400 scale-100'
-                  }`}
-                >
-                  <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+                <span className="relative">
+                  <span
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200 ${
+                      isActive
+                        ? 'bg-gold-400/15 text-gold-400 scale-110'
+                        : 'text-ink-400 scale-100'
+                    }`}
+                  >
+                    <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+                  </span>
+                  {badgeCount > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                      {badgeCount > 99 ? '99+' : badgeCount}
+                    </span>
+                  )}
                 </span>
                 <span
                   className={`text-[10px] font-medium tracking-wide transition-colors duration-200 ${

@@ -44,7 +44,7 @@ export function ResourceForm({ resource, onClose, onSubmit }: ResourceFormProps)
 
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
-  const [christianTopic, setChristianTopic] = useState<ChristianTopic>('Uncategorized');
+  const [christianTopic, setChristianTopic] = useState<ChristianTopic>('Christian Living');
   const [description, setDescription] = useState('');
   const [url, setUrl] = useState('');
   const [coverColor, setCoverColor] = useState(PRESET_COLORS[0]);

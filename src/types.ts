@@ -3,34 +3,40 @@ export type Category = 'Book' | 'Sermon' | 'Study Guide' | 'Article' | 'Podcast'
 export const CATEGORIES: Category[] = ['Book', 'Sermon', 'Study Guide', 'Article', 'Podcast'];
 
 export type ChristianTopic =
-  | 'Prayer & Devotional'
-  | 'Marriage & Family'
+  | 'Apologetics'
+  | 'Biography & Christian History'
+  | 'Christian Fiction'
   | 'Christian Living'
-  | 'Theology & Apologetics'
-  | 'Leadership & Ministry'
-  | 'Prophecy & Spiritual Gifts'
-  | 'Evangelism & Missions'
-  | 'Youth & Children'
-  | 'Grief & Healing'
-  | 'Finance & Stewardship'
-  | 'Bible Study'
-  | 'Worship'
-  | 'Uncategorized';
+  | 'Eschatology'
+  | 'Faith'
+  | 'Finances'
+  | 'Healing'
+  | 'Holy Spirit'
+  | 'In Christ'
+  | 'Kids/Youth'
+  | 'Marriage/Relationships'
+  | 'Ministry'
+  | 'Parenting/Family'
+  | 'Personal Development / Spiritual Growth'
+  | 'Prayer';
 
 export const CHRISTIAN_TOPICS: ChristianTopic[] = [
-  'Prayer & Devotional',
-  'Marriage & Family',
+  'Apologetics',
+  'Biography & Christian History',
+  'Christian Fiction',
   'Christian Living',
-  'Theology & Apologetics',
-  'Leadership & Ministry',
-  'Prophecy & Spiritual Gifts',
-  'Evangelism & Missions',
-  'Youth & Children',
-  'Grief & Healing',
-  'Finance & Stewardship',
-  'Bible Study',
-  'Worship',
-  'Uncategorized',
+  'Eschatology',
+  'Faith',
+  'Finances',
+  'Healing',
+  'Holy Spirit',
+  'In Christ',
+  'Kids/Youth',
+  'Marriage/Relationships',
+  'Ministry',
+  'Parenting/Family',
+  'Personal Development / Spiritual Growth',
+  'Prayer',
 ];
 
 export interface Resource {
@@ -54,4 +60,13 @@ export interface Resource {
 
 export type ResourceInput = Omit<Resource, 'id' | 'created_at' | 'updated_at'>;
 
-export type TabId = 'library' | 'members' | 'sermons' | 'comms' | 'pastoral';
+export interface BorrowRequest {
+  id: string;
+  book_id: string;
+  requester_email: string;
+  requester_name: string;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+}
+
+export type TabId = 'library' | 'members' | 'sermons' | 'comms' | 'pastoral' | 'requests';

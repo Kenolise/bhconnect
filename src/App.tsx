@@ -7,15 +7,19 @@ import { TABS } from './tabs';
 import type { TabId } from './types';
 import { BottomNav } from './components/BottomNav';
 import { LibraryTab } from './components/LibraryTab';
+import { RequestsTab } from './components/RequestsTab';
 import { ComingSoon } from './components/ComingSoon';
 
 type View = 'landing' | 'signin' | 'app';
 
 function AppShell() {
-  const { user, signOut } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
   const [view, setView] = useState<View>(() => (user ? 'app' : 'landing'));
   const [activeTab, setActiveTab] = useState<TabId>('library');
-  const activeDef = TABS.find((t) => t.id === activeTab)!;
+  const [pendingRequestCount, setPendingRequestCount] = useState(0);
+
+  const visibleTabs = TABS.filter((t) => !t.adminOnly || isAdmin);
+  const activeDef = visibleTabs.find((t) => t.id === activeTab) ?? visibleTabs[0];
 
   const firstName = user?.email
     ? user.email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
@@ -25,6 +29,11 @@ function AppShell() {
     signOut();
     setView('landing');
     setActiveTab('library');
+  };
+
+  const handleTabChange = (tab: TabId) => {
+    if (tab === 'requests' && !isAdmin) return;
+    setActiveTab(tab);
   };
 
   if (view === 'landing') {
@@ -82,16 +91,23 @@ function AppShell() {
         </div>
       </header>
 
-      {/* Tab content — padded below fixed header */}
+      {/* Tab content */}
       <main key={activeTab} className="animate-fade-in mx-auto max-w-md pt-[calc(env(safe-area-inset-top)+64px)]">
         {activeTab === 'library' ? (
           <LibraryTab />
+        ) : activeTab === 'requests' && isAdmin ? (
+          <RequestsTab onPendingCountChange={setPendingRequestCount} />
         ) : (
           <ComingSoon tab={activeDef} />
         )}
       </main>
 
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} tabs={TABS} />
+      <BottomNav
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        tabs={visibleTabs}
+        badges={isAdmin ? { requests: pendingRequestCount } : undefined}
+      />
     </div>
   );
 }
