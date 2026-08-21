@@ -74,7 +74,7 @@ export function RequestsTab({ onPendingCountChange }: RequestsTabProps) {
     if (fetchError) {
       setError(fetchError.message);
     } else if (data) {
-      const rows = data as RequestRow[];
+      const rows = data as unknown as RequestRow[];
       setRequests(rows);
       const pendingCount = rows.filter((r) => r.status === 'pending').length;
       onPendingCountChange(pendingCount);

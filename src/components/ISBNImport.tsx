@@ -26,7 +26,11 @@ interface ParsedRow {
   isbn: string;
 }
 
-interface LookupResult extends ParsedRow {
+interface LookupResult {
+  date: string;
+  quantity: number;
+  name: string;
+  isbn: string;
   status: 'pending' | 'found' | 'not_found' | 'error';
   title: string;
   author: string;
@@ -102,19 +106,33 @@ function parseCSV(text: string): ParsedRow[] {
 
   if (codeIdx === -1) return [];
 
-  const rows: ParsedRow[] = [];
+  // First, parse all rows from the CSV
+  const rawRows: ParsedRow[] = [];
   for (let i = 1; i < lines.length; i++) {
     const cols = splitCSVLine(lines[i]);
     const isbn = (cols[codeIdx] ?? '').replace(/^"|"$/g, '').trim();
     if (!isbn) continue;
-    rows.push({
+    rawRows.push({
       date: dateIdx >= 0 ? (cols[dateIdx] ?? '').replace(/^"|"$/g, '').trim() : '',
       quantity: qtyIdx >= 0 ? parseInt(cols[qtyIdx] ?? '1', 10) || 1 : 1,
       name: nameIdx >= 0 ? (cols[nameIdx] ?? '').replace(/^"|"$/g, '').trim() : '',
       isbn,
     });
   }
-  return rows;
+
+  // Group by ISBN and sum quantities so repeated scans of the same book
+  // become one entry with the correct total copy count.
+  const grouped = new Map<string, ParsedRow>();
+  for (const row of rawRows) {
+    const existing = grouped.get(row.isbn);
+    if (existing) {
+      existing.quantity += row.quantity;
+    } else {
+      grouped.set(row.isbn, { ...row });
+    }
+  }
+
+  return Array.from(grouped.values());
 }
 
 function splitCSVLine(line: string): string[] {
@@ -144,6 +162,7 @@ export function ISBNImport({ onClose, onImported }: ISBNImportProps) {
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [importedCount, setImportedCount] = useState(0);
+  const [updatedCount, setUpdatedCount] = useState(0);
   const [skippedCount, setSkippedCount] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -203,11 +222,11 @@ export function ISBNImport({ onClose, onImported }: ISBNImportProps) {
     const toImport = rows.filter((r) => !r.skip);
     const isbns = toImport.map((r) => r.isbn);
 
-    // Fetch which ISBNs already exist so we can skip them instead of using
-    // upsert (which requires a full unique constraint, not a partial index).
+    // Fetch existing books by ISBN so we can update their copy counts
+    // instead of skipping or creating duplicates.
     const { data: existing, error: fetchErr } = await supabase
       .from('library_resources')
-      .select('isbn')
+      .select('id, isbn, total_copies, available_copies')
       .in('isbn', isbns);
 
     if (fetchErr) {
@@ -216,27 +235,56 @@ export function ISBNImport({ onClose, onImported }: ISBNImportProps) {
       return;
     }
 
-    const existingSet = new Set((existing ?? []).map((r) => r.isbn));
-    const newRecords: ResourceInput[] = toImport
-      .filter((r) => !existingSet.has(r.isbn))
-      .map((r) => ({
-        title: r.title || r.name,
-        author: r.author || null,
-        category: 'Book',
-        description: r.description || null,
-        url: null,
-        cover_color: randomColor(),
-        isbn: r.isbn,
-        christian_topic: r.christian_topic,
-        total_copies: r.quantity,
-        available_copies: r.quantity,
-        publisher: r.publisher || null,
-        publish_year: r.publish_year || null,
-        cover_image_url: r.cover_image_url || null,
-      }));
+    const existingMap = new Map<
+      string,
+      { id: string; total_copies: number; available_copies: number }
+    >();
+    for (const row of existing ?? []) {
+      if (row.isbn) {
+        existingMap.set(row.isbn, {
+          id: row.id,
+          total_copies: row.total_copies,
+          available_copies: row.available_copies,
+        });
+      }
+    }
 
-    const skippedCount = toImport.length - newRecords.length;
+    const newRecords: ResourceInput[] = [];
+    const updates: { id: string; total_copies: number; available_copies: number }[] = [];
 
+    for (const r of toImport) {
+      const existingBook = existingMap.get(r.isbn);
+      if (existingBook) {
+        // Add scanned quantity to the existing book's copy counts.
+        const newTotal = existingBook.total_copies + r.quantity;
+        const newAvailable = existingBook.available_copies + r.quantity;
+        updates.push({
+          id: existingBook.id,
+          total_copies: newTotal,
+          available_copies: newAvailable,
+        });
+      } else {
+        newRecords.push({
+          title: r.title || r.name,
+          author: r.author || null,
+          category: 'Book',
+          description: r.description || null,
+          url: null,
+          cover_color: randomColor(),
+          isbn: r.isbn,
+          christian_topic: r.christian_topic,
+          total_copies: r.quantity,
+          available_copies: r.quantity,
+          publisher: r.publisher || null,
+          publish_year: r.publish_year || null,
+          cover_image_url: r.cover_image_url || null,
+        });
+      }
+    }
+
+    const skippedCount = toImport.length - newRecords.length - updates.length;
+
+    // Insert new books
     if (newRecords.length > 0) {
       const { error: insertErr } = await supabase
         .from('library_resources')
@@ -249,8 +297,26 @@ export function ISBNImport({ onClose, onImported }: ISBNImportProps) {
       }
     }
 
+    // Update existing books with additional copies
+    for (const update of updates) {
+      const { error: updateErr } = await supabase
+        .from('library_resources')
+        .update({
+          total_copies: update.total_copies,
+          available_copies: update.available_copies,
+        })
+        .eq('id', update.id);
+
+      if (updateErr) {
+        setImportError(updateErr.message);
+        setImporting(false);
+        return;
+      }
+    }
+
     setImporting(false);
     setImportedCount(newRecords.length);
+    setUpdatedCount(updates.length);
     setSkippedCount(skippedCount);
     setStep('done');
     onImported();
@@ -442,27 +508,35 @@ export function ISBNImport({ onClose, onImported }: ISBNImportProps) {
         {step === 'review' && (
           <div className="px-4 pb-4 pt-4">
             {/* Stats bar */}
-            <div className="mb-4 grid grid-cols-3 gap-2">
-              <div className="rounded-xl bg-ink-850 px-3 py-2.5 text-center">
-                <p className="text-[20px] font-bold text-white">{rows.length}</p>
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-500">
-                  Scanned
+            <div className="mb-4 grid grid-cols-4 gap-2">
+              <div className="rounded-xl bg-ink-850 px-2 py-2.5 text-center">
+                <p className="text-[18px] font-bold text-white">{rows.length}</p>
+                <p className="text-[9px] font-semibold uppercase tracking-wide text-ink-500">
+                  Unique ISBNs
                 </p>
               </div>
-              <div className="rounded-xl bg-ink-850 px-3 py-2.5 text-center">
-                <p className="text-[20px] font-bold text-green-400">
+              <div className="rounded-xl bg-ink-850 px-2 py-2.5 text-center">
+                <p className="text-[18px] font-bold text-green-400">
                   {rows.filter((r) => r.status === 'found').length}
                 </p>
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-500">
+                <p className="text-[9px] font-semibold uppercase tracking-wide text-ink-500">
                   Found
                 </p>
               </div>
-              <div className="rounded-xl bg-ink-850 px-3 py-2.5 text-center">
-                <p className="text-[20px] font-bold text-amber-400">
+              <div className="rounded-xl bg-ink-850 px-2 py-2.5 text-center">
+                <p className="text-[18px] font-bold text-amber-400">
                   {rows.filter((r) => r.status !== 'found').length}
                 </p>
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-500">
-                  Not found
+                <p className="text-[9px] font-semibold uppercase tracking-wide text-ink-500">
+                  Not Found
+                </p>
+              </div>
+              <div className="rounded-xl bg-ink-850 px-2 py-2.5 text-center">
+                <p className="text-[18px] font-bold text-gold-400">
+                  {rows.filter((r) => !r.skip).reduce((sum, r) => sum + r.quantity, 0)}
+                </p>
+                <p className="text-[9px] font-semibold uppercase tracking-wide text-ink-500">
+                  Copies
                 </p>
               </div>
             </div>
@@ -532,18 +606,46 @@ export function ISBNImport({ onClose, onImported }: ISBNImportProps) {
             <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-green-400/30 bg-green-400/10">
               <CheckCircle2 size={28} className="text-green-400" />
             </div>
-            <h3 className="mb-2 text-[17px] font-bold text-white">Import Complete!</h3>
-            <p className="mb-2 text-center text-[13px] text-ink-400">
-              {importedCount} book{importedCount !== 1 ? 's' : ''} added to your library.
-            </p>
+            <h3 className="mb-4 text-[17px] font-bold text-white">Import Complete!</h3>
+
+            {importedCount > 0 && (
+              <div className="mb-2 flex w-full max-w-xs items-center gap-3 rounded-xl border border-green-400/20 bg-green-400/5 px-4 py-3">
+                <CheckCircle2 size={18} className="shrink-0 text-green-400" />
+                <p className="text-[13px] text-ink-200">
+                  <span className="font-bold text-white">{importedCount}</span> new{' '}
+                  {importedCount !== 1 ? 'books' : 'book'} added
+                </p>
+              </div>
+            )}
+
+            {updatedCount > 0 && (
+              <div className="mb-2 flex w-full max-w-xs items-center gap-3 rounded-xl border border-gold-400/20 bg-gold-400/5 px-4 py-3">
+                <BookOpen size={18} className="shrink-0 text-gold-400" />
+                <p className="text-[13px] text-ink-200">
+                  <span className="font-bold text-white">{updatedCount}</span> existing{' '}
+                  {updatedCount !== 1 ? 'books' : 'book'} updated with more copies
+                </p>
+              </div>
+            )}
+
             {skippedCount > 0 && (
-              <p className="mb-6 text-center text-[12px] text-ink-500">
-                {skippedCount} book{skippedCount !== 1 ? 's were' : ' was'} skipped (already in library).
+              <div className="mb-4 flex w-full max-w-xs items-center gap-3 rounded-xl border border-ink-700 bg-ink-850 px-4 py-3">
+                <AlertCircle size={18} className="shrink-0 text-ink-500" />
+                <p className="text-[13px] text-ink-500">
+                  {skippedCount} {skippedCount !== 1 ? 'books' : 'book'} skipped
+                </p>
+              </div>
+            )}
+
+            {importedCount === 0 && updatedCount === 0 && skippedCount === 0 && (
+              <p className="mb-6 text-center text-[13px] text-ink-400">
+                No books were imported.
               </p>
             )}
+
             <button
               onClick={onClose}
-              className="mt-2 rounded-xl bg-gradient-to-r from-gold-400 to-gold-500 px-8 py-3 text-sm font-bold text-black transition hover:from-gold-300 hover:to-gold-400"
+              className="mt-4 rounded-xl bg-gradient-to-r from-gold-400 to-gold-500 px-8 py-3 text-sm font-bold text-black transition hover:from-gold-300 hover:to-gold-400"
             >
               View Library
             </button>
@@ -598,7 +700,14 @@ function ReviewRow({ row, idx, onChange }: ReviewRowProps) {
           {row.author && (
             <p className="truncate text-[11px] text-ink-400">{row.author}</p>
           )}
-          <p className="mt-0.5 text-[10px] text-ink-600">ISBN {row.isbn}</p>
+          <div className="mt-0.5 flex items-center gap-2">
+            <p className="text-[10px] text-ink-600">ISBN {row.isbn}</p>
+            {row.quantity > 1 && (
+              <span className="rounded-full bg-gold-400/15 px-1.5 py-0.5 text-[9px] font-bold text-gold-400">
+                {row.quantity} copies
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">

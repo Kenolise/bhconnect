@@ -18,7 +18,8 @@ export type ChristianTopic =
   | 'Ministry'
   | 'Parenting/Family'
   | 'Personal Development / Spiritual Growth'
-  | 'Prayer';
+  | 'Prayer'
+  | 'Uncategorized';
 
 export const CHRISTIAN_TOPICS: ChristianTopic[] = [
   'Apologetics',
@@ -37,6 +38,7 @@ export const CHRISTIAN_TOPICS: ChristianTopic[] = [
   'Parenting/Family',
   'Personal Development / Spiritual Growth',
   'Prayer',
+  'Uncategorized',
 ];
 
 export interface Resource {
