@@ -128,6 +128,7 @@ function parseCSV(text: string): ParsedRow[] {
     const existing = grouped.get(row.isbn);
     if (existing) {
       existing.quantity += row.quantity;
+      if (!existing.name && row.name) existing.name = row.name;
     } else {
       grouped.set(row.isbn, { ...row });
     }
@@ -204,11 +205,13 @@ export function ISBNImport({ onClose, onImported }: ISBNImportProps) {
     setLookupProgress(0);
     const updated = [...initial];
     for (let i = 0; i < updated.length; i++) {
-      const result = await lookupISBN(updated[i].isbn);
-      updated[i] = { ...updated[i], ...result } as LookupResult;
-      if (result.status === 'found' && !result.title) {
-        updated[i].title = updated[i].name;
-      }
+      const current = updated[i];
+      const result = await lookupISBN(current.isbn);
+      updated[i] = {
+        ...current,
+        ...result,
+        title: current.name || result.title || current.title,
+      } as LookupResult;
       setRows([...updated]);
       setLookupProgress(Math.round(((i + 1) / updated.length) * 100));
     }
@@ -257,7 +260,8 @@ export function ISBNImport({ onClose, onImported }: ISBNImportProps) {
       total_copies: number;
       available_copies: number;
       christian_topic: ChristianTopic;
-    }[] = [];
+      title?: string;
+    }[] = []; 
 
     for (const r of toImport) {
       const existingBook = existingMap.get(r.isbn);
@@ -271,6 +275,7 @@ export function ISBNImport({ onClose, onImported }: ISBNImportProps) {
           total_copies: newTotal,
           available_copies: newAvailable,
           christian_topic: r.christian_topic,
+          ...(r.name ? { title: r.name } : {}),
         });
       } else {
         newRecords.push({
@@ -314,6 +319,7 @@ export function ISBNImport({ onClose, onImported }: ISBNImportProps) {
           total_copies: update.total_copies,
           available_copies: update.available_copies,
           christian_topic: update.christian_topic,
+          ...(update.title ? { title: update.title } : {}),
         })
         .eq('id', update.id);
 
