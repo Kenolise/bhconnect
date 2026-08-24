@@ -10,6 +10,7 @@ import {
   ChevronRight,
   BookOpen,
   ArrowLeft,
+  Tag,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { CHRISTIAN_TOPICS, type ChristianTopic, type ResourceInput } from '../types';
@@ -164,6 +165,7 @@ export function ISBNImport({ onClose, onImported }: ISBNImportProps) {
   const [importedCount, setImportedCount] = useState(0);
   const [updatedCount, setUpdatedCount] = useState(0);
   const [skippedCount, setSkippedCount] = useState(0);
+  const [batchTopic, setBatchTopic] = useState<ChristianTopic>('Uncategorized');
   const fileRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
@@ -188,7 +190,7 @@ export function ISBNImport({ onClose, onImported }: ISBNImportProps) {
         publisher: '',
         publish_year: '',
         cover_image_url: '',
-        christian_topic: 'Uncategorized',
+        christian_topic: batchTopic,
         skip: false,
       }));
       setRows(initial);
@@ -250,18 +252,25 @@ export function ISBNImport({ onClose, onImported }: ISBNImportProps) {
     }
 
     const newRecords: ResourceInput[] = [];
-    const updates: { id: string; total_copies: number; available_copies: number }[] = [];
+    const updates: {
+      id: string;
+      total_copies: number;
+      available_copies: number;
+      christian_topic: ChristianTopic;
+    }[] = [];
 
     for (const r of toImport) {
       const existingBook = existingMap.get(r.isbn);
       if (existingBook) {
-        // Add scanned quantity to the existing book's copy counts.
+        // Add scanned quantity to the existing book's copy counts
+        // and apply the batch topic.
         const newTotal = existingBook.total_copies + r.quantity;
         const newAvailable = existingBook.available_copies + r.quantity;
         updates.push({
           id: existingBook.id,
           total_copies: newTotal,
           available_copies: newAvailable,
+          christian_topic: r.christian_topic,
         });
       } else {
         newRecords.push({
@@ -297,13 +306,14 @@ export function ISBNImport({ onClose, onImported }: ISBNImportProps) {
       }
     }
 
-    // Update existing books with additional copies
+    // Update existing books with additional copies and batch topic
     for (const update of updates) {
       const { error: updateErr } = await supabase
         .from('library_resources')
         .update({
           total_copies: update.total_copies,
           available_copies: update.available_copies,
+          christian_topic: update.christian_topic,
         })
         .eq('id', update.id);
 
@@ -340,6 +350,7 @@ export function ISBNImport({ onClose, onImported }: ISBNImportProps) {
       setLookupProgress(0);
       setParseError(null);
       setImportError(null);
+      setBatchTopic('Uncategorized');
     }
   };
 
@@ -421,6 +432,30 @@ export function ISBNImport({ onClose, onImported }: ISBNImportProps) {
               Required columns:{' '}
               <span className="text-ink-300">DATE, QUANTITY, NAME, CODECONTENT</span>
             </p>
+
+            {/* Batch topic selector */}
+            <div className="mb-5 w-full max-w-xs">
+              <label className="mb-2 block text-[12px] font-semibold uppercase tracking-widest text-ink-500">
+                Topic for this batch
+              </label>
+              <div className="relative">
+                <Tag size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gold-400/60" />
+                <select
+                  value={batchTopic}
+                  onChange={(e) => setBatchTopic(e.target.value as ChristianTopic)}
+                  className="w-full appearance-none rounded-xl border border-ink-600 bg-ink-900 py-3 pl-9 pr-3 text-[14px] font-medium text-white outline-none focus:border-gold-400/50"
+                >
+                  {CHRISTIAN_TOPICS.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p className="mt-2 text-[11px] text-ink-500">
+                Every book in this file will be tagged with this topic.
+              </p>
+            </div>
 
             <button
               onClick={() => fileRef.current?.click()}
@@ -539,6 +574,34 @@ export function ISBNImport({ onClose, onImported }: ISBNImportProps) {
                   Copies
                 </p>
               </div>
+            </div>
+
+            {/* Batch topic bar — change topic for all rows at once */}
+            <div className="mb-4 flex items-center gap-3 rounded-xl border border-gold-400/20 bg-gold-400/5 px-4 py-3">
+              <Tag size={16} className="shrink-0 text-gold-400" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-ink-500">
+                  Batch topic
+                </p>
+                <p className="text-[12px] text-ink-400">Applies to all selected books</p>
+              </div>
+              <select
+                value={batchTopic}
+                onChange={(e) => {
+                  const topic = e.target.value as ChristianTopic;
+                  setBatchTopic(topic);
+                  setRows((prev) =>
+                    prev.map((r) => ({ ...r, christian_topic: topic }))
+                  );
+                }}
+                className="shrink-0 rounded-lg border border-ink-600 bg-ink-900 px-3 py-2 text-[13px] font-medium text-white outline-none focus:border-gold-400/50"
+              >
+                {CHRISTIAN_TOPICS.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Import CTA — shown here at top AND in sticky footer */}
@@ -705,6 +768,11 @@ function ReviewRow({ row, idx, onChange }: ReviewRowProps) {
             {row.quantity > 1 && (
               <span className="rounded-full bg-gold-400/15 px-1.5 py-0.5 text-[9px] font-bold text-gold-400">
                 {row.quantity} copies
+              </span>
+            )}
+            {row.christian_topic !== 'Uncategorized' && (
+              <span className="rounded-full bg-ink-700/60 px-1.5 py-0.5 text-[9px] font-medium text-ink-300">
+                {row.christian_topic}
               </span>
             )}
           </div>
