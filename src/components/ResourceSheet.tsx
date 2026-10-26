@@ -258,7 +258,7 @@ export function ResourceSheet({ resource, onClose, onEdit, onDelete, isAdmin }: 
                   <div className="flex items-center gap-3 rounded-2xl border border-gold-400/20 bg-gold-400/5 p-4">
                     <BookMarked size={18} className="shrink-0 text-gold-400/70" />
                     <p className="text-[13px] text-ink-300">
-                      You already have a pending request for this book. The library team will contact you soon.
+                      You already have a pending request for this book. You can request other books while you wait, and the library team will contact you soon.
                     </p>
                   </div>
                 ) : borrowStep === 'submitting' ? (

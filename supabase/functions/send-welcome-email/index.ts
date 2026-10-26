@@ -63,9 +63,6 @@ Deno.serve(async (req: Request) => {
             </a>
           </div>
 
-          <p style="color: #71717a; font-size: 13px; line-height: 1.6; margin: 0 0 16px 0;">
-            If you have any questions, just reply to this email and we'll be happy to help.
-          </p>
         </div>
 
         <div style="text-align: center; margin-top: 24px;">
@@ -83,8 +80,6 @@ Deno.serve(async (req: Request) => {
 Your account is ready, so you can now browse our shared library and request available books.
 
 To get started, sign in at ${appUrl} and explore the Library tab. When you find a book you'd like to borrow, open it and tap "Request to borrow." Our library team will be in touch once it's ready for pickup.
-
-If you have any questions, just reply to this email and we'll be happy to help.
 
 Blessings,
 The Library Team

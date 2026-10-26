@@ -1,47 +1,14 @@
-import { Library, Users, Mic, MessageSquare, HeartHandshake, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 interface LandingPageProps {
   onSignIn: () => void;
 }
 
-const MODULES = [
-  {
-    icon: Library,
-    label: 'Library',
-    desc: 'Browse and borrow church resources, books, and study materials.',
-    live: true,
-  },
-  {
-    icon: Users,
-    label: 'Members',
-    desc: 'A directory of our church family and small groups.',
-    live: false,
-  },
-  {
-    icon: Mic,
-    label: 'Sermons',
-    desc: 'Watch and listen to past messages and series.',
-    live: false,
-  },
-  {
-    icon: MessageSquare,
-    label: 'Comms',
-    desc: 'Announcements, events, newsletters, and the weekly bulletin.',
-    live: false,
-  },
-  {
-    icon: HeartHandshake,
-    label: 'Pastoral',
-    desc: 'Prayer requests, pastoral care, and confidential support.',
-    live: false,
-  },
-];
-
 export function LandingPage({ onSignIn }: LandingPageProps) {
   return (
-    <div className="min-h-screen bg-ink-950 pb-16 text-white">
+    <div className="flex h-screen flex-col overflow-hidden bg-ink-950 text-white">
       {/* Hero */}
-      <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 text-center">
+      <section className="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden px-6 text-center">
         {/* Background glows */}
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute left-1/2 top-0 h-[480px] w-[480px] -translate-x-1/2 rounded-full bg-gold-400/6 blur-[120px]" />
@@ -50,9 +17,9 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
         </div>
 
         {/* Logo mark */}
-        <div className="relative mb-7">
+        <div className="relative mb-5">
           <div className="absolute inset-0 animate-pulse rounded-3xl bg-gold-400/20 blur-2xl" />
-          <div className="relative flex h-24 w-24 items-center justify-center rounded-3xl border border-gold-400/25 bg-gradient-to-br from-ink-800 to-ink-900 shadow-2xl shadow-black/40">
+          <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl border border-gold-400/25 bg-gradient-to-br from-ink-800 to-ink-900 shadow-2xl shadow-black/40">
             <svg width="52" height="52" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path
                 d="M256 90 L402 170 V312 C402 386 336 430 256 446 C176 430 110 386 110 312 V170 Z"
@@ -73,7 +40,7 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
 
         {/* Wordmark */}
         <div className="mb-2">
-          <span className="font-display text-4xl font-bold tracking-tight text-white">
+          <span className="font-display text-3xl font-bold tracking-tight text-white">
             BH Connect
           </span>
         </div>
@@ -82,7 +49,7 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
         </p>
 
         {/* Divider */}
-        <div className="my-5 flex items-center gap-4">
+        <div className="my-4 flex items-center gap-4">
           <div className="h-px w-16 bg-gradient-to-r from-transparent to-gold-400/40" />
           <div className="h-1 w-1 rounded-full bg-gold-400/60" />
           <div className="h-px w-16 bg-gradient-to-l from-transparent to-gold-400/40" />
@@ -99,7 +66,7 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
       </section>
 
       {/* Mission banner */}
-      <section className="border-y border-ink-700/60 bg-ink-900/60 px-6 py-10 text-center backdrop-blur-sm">
+      <section className="shrink-0 border-y border-ink-700/60 bg-ink-900/60 px-6 py-6 text-center backdrop-blur-sm">
         <p className="font-display mx-auto max-w-sm text-[18px] font-semibold italic leading-relaxed text-ink-200">
           "Lead people to Jesus. Make them more like Him. See them lead others to Him."
         </p>
@@ -108,54 +75,6 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
         </p>
       </section>
 
-      {/* Modules */}
-      <section className="px-5 py-12">
-        <div className="mb-8 text-center">
-          <span className="mb-2 inline-block text-[11px] font-semibold uppercase tracking-widest text-gold-400">
-            What's inside
-          </span>
-          <h2 className="font-display text-2xl font-bold text-white">Five sections.<br />One community.</h2>
-        </div>
-
-        <div className="space-y-3">
-          {MODULES.map((mod) => {
-            const Icon = mod.icon;
-            return (
-              <div
-                key={mod.label}
-                className="flex items-center gap-4 rounded-2xl border border-ink-700/60 bg-ink-900/80 px-4 py-4"
-              >
-                <div
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${
-                    mod.live
-                      ? 'border-gold-400/30 bg-gold-400/10 text-gold-400'
-                      : 'border-ink-600 bg-ink-800 text-ink-400'
-                  }`}
-                >
-                  <Icon size={20} strokeWidth={1.8} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[15px] font-semibold ${mod.live ? 'text-white' : 'text-ink-300'}`}>
-                      {mod.label}
-                    </span>
-                    {mod.live ? (
-                      <span className="rounded-full border border-teal-500/40 bg-teal-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-teal-400">
-                        Live
-                      </span>
-                    ) : (
-                      <span className="rounded-full border border-ink-600 bg-ink-800 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-500">
-                        Soon
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-0.5 text-[13px] leading-snug text-ink-500">{mod.desc}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
     </div>
   );
 }
