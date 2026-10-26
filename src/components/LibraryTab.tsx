@@ -50,7 +50,8 @@ export function LibraryTab() {
       .select('*')
       .order('created_at', { ascending: false });
     if (error) {
-      setError(error.message);
+      console.error('Failed to load library:', error);
+      setError('We could not load the library. Please try again.');
     } else if (data) {
       setResources(data as Resource[]);
     }
@@ -92,7 +93,8 @@ export function LibraryTab() {
       .delete()
       .eq('id', resource.id);
     if (error) {
-      setError(error.message);
+      console.error('Failed to delete book:', error);
+      setError('We could not delete this book. Please try again.');
       return;
     }
     setSelectedResource(null);

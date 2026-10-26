@@ -30,7 +30,7 @@ interface ResourceSheetProps {
 type BorrowStep = 'idle' | 'submitting' | 'success';
 
 export function ResourceSheet({ resource, onClose, onEdit, onDelete, isAdmin }: ResourceSheetProps) {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const [borrowStep, setBorrowStep] = useState<BorrowStep>('idle');
   const [borrowError, setBorrowError] = useState<string | null>(null);
   const [alreadyPending, setAlreadyPending] = useState(false);
@@ -76,11 +76,15 @@ export function ResourceSheet({ resource, onClose, onEdit, onDelete, isAdmin }: 
     setBorrowError(null);
     const { error } = await supabase.from('borrow_requests').insert({
       book_id: resource.id,
-      requester_email: user.email ?? '',
-      requester_name: profile?.full_name ?? '',
-      user_id: user.id,
     });
     if (error) {
+      // 23505 = unique violation: a pending request for this book already exists
+      if (error.code === '23505') {
+        setAlreadyPending(true);
+        setBorrowStep('idle');
+        return;
+      }
+      console.error('Borrow request failed:', error);
       setBorrowError('Something went wrong. Please try again.');
       setBorrowStep('idle');
     } else {

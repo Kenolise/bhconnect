@@ -60,7 +60,9 @@ export function SignUpPage({ onBack, onSuccess, onSignIn }: SignUpPageProps) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
       if (msg.includes('already registered') || msg.includes('already been registered')) {
-        setError('An account with this email already exists. Try signing in instead.');
+        setError(
+          'We could not create an account with those details. If you already have one, try signing in instead.'
+        );
       } else if (msg.includes('password')) {
         setError('Password is too weak. Please use at least 6 characters.');
       } else if (msg.includes('email')) {

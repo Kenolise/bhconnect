@@ -72,7 +72,8 @@ export function RequestsTab({ onPendingCountChange }: RequestsTabProps) {
       .order('created_at', { ascending: false });
 
     if (fetchError) {
-      setError(fetchError.message);
+      console.error('Failed to load borrow requests:', fetchError);
+      setError('We could not load the requests. Please try again.');
     } else if (data) {
       const rows = data as unknown as RequestRow[];
       setRequests(rows);
@@ -92,7 +93,8 @@ export function RequestsTab({ onPendingCountChange }: RequestsTabProps) {
       request_id: request.id,
     });
     if (rpcError) {
-      setError(rpcError.message);
+      console.error('Failed to approve request:', rpcError);
+      setError('We could not approve this request. Please refresh and try again.');
     } else {
       await fetchRequests();
     }
@@ -106,7 +108,8 @@ export function RequestsTab({ onPendingCountChange }: RequestsTabProps) {
       .update({ status: 'rejected' })
       .eq('id', request.id);
     if (updateError) {
-      setError(updateError.message);
+      console.error('Failed to decline request:', updateError);
+      setError('We could not decline this request. Please refresh and try again.');
     } else {
       await fetchRequests();
     }

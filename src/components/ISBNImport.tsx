@@ -235,7 +235,8 @@ export function ISBNImport({ onClose, onImported }: ISBNImportProps) {
       .in('isbn', isbns);
 
     if (fetchErr) {
-      setImportError(fetchErr.message);
+      console.error('Import lookup failed:', fetchErr);
+      setImportError('We could not check the existing library. Please try again.');
       setImporting(false);
       return;
     }
@@ -305,7 +306,8 @@ export function ISBNImport({ onClose, onImported }: ISBNImportProps) {
         .insert(newRecords);
 
       if (insertErr) {
-        setImportError(insertErr.message);
+        console.error('Import insert failed:', insertErr);
+        setImportError('We could not add the new books. Please try again.');
         setImporting(false);
         return;
       }
@@ -324,7 +326,8 @@ export function ISBNImport({ onClose, onImported }: ISBNImportProps) {
         .eq('id', update.id);
 
       if (updateErr) {
-        setImportError(updateErr.message);
+        console.error('Import update failed:', updateErr);
+        setImportError('We could not update the existing books. Please try again.');
         setImporting(false);
         return;
       }
