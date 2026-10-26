@@ -1,5 +1,3 @@
-import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
@@ -26,12 +24,17 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    if (!resendApiKey) {
+      return new Response(
+        JSON.stringify({ error: 'RESEND_API_KEY not configured', sent: false }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const firstName = (full_name || '').split(' ')[0] || 'there';
     const appUrl = 'https://bhchurchmgt.bolt.host';
+    const senderEmail = 'Believers House Library <onboarding@resend.dev>';
 
     const htmlBody = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background-color: #0a0a0b;">
@@ -87,21 +90,28 @@ Blessings,
 The Library Team
 Believers House Halifax`;
 
-    const { error: emailError } = await supabase.auth.admin.sendEmail({
-      email,
-      type: 'welcome',
-      options: {
-        subject: 'Welcome to the Believers House Halifax Library',
-        html_template: htmlBody,
-        text_template: textBody,
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        from: senderEmail,
+        to: email,
+        reply_to: 'believershouseh@gmail.com',
+        subject: 'Welcome to the Believers House Halifax Library',
+        html: htmlBody,
+        text: textBody,
+      }),
     });
 
-    if (emailError) {
-      console.error('Email send error:', emailError.message);
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('Resend API error:', res.status, errText);
       return new Response(
-        JSON.stringify({ error: 'Could not send welcome email' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Could not send welcome email', sent: false }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 

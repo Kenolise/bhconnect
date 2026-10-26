@@ -43,6 +43,19 @@ export function SignUpPage({ onBack, onSuccess, onSignIn }: SignUpPageProps) {
     setLoading(true);
     try {
       await signUp(email, password, fullName);
+      // Fire welcome email in the background — don't block the success screen
+      try {
+        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-welcome-email`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email: email.trim().toLowerCase(), full_name: fullName.trim() }),
+        });
+      } catch {
+        // Welcome email is best-effort — don't fail signup if it errors
+      }
       setDone(true);
     } catch (err) {
       const msg = err instanceof Error ? err.message : '';
@@ -86,7 +99,7 @@ export function SignUpPage({ onBack, onSuccess, onSignIn }: SignUpPageProps) {
             Continue to Sign In
           </button>
           <p className="mt-4 text-[12px] text-ink-600">
-            A welcome email is on its way to your inbox.
+            We've sent a welcome email to your inbox.
           </p>
         </div>
       </div>
