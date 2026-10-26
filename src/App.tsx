@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { LogOut } from 'lucide-react';
+import { LogOut, Loader2 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LandingPage } from './pages/LandingPage';
 import { SignInPage } from './pages/SignInPage';
+import { SignUpPage } from './pages/SignUpPage';
 import { TABS } from './tabs';
 import type { TabId } from './types';
 import { BottomNav } from './components/BottomNav';
@@ -10,23 +11,28 @@ import { LibraryTab } from './components/LibraryTab';
 import { RequestsTab } from './components/RequestsTab';
 import { ComingSoon } from './components/ComingSoon';
 
-type View = 'landing' | 'signin' | 'app';
+type View = 'landing' | 'signin' | 'signup' | 'app';
 
 function AppShell() {
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, profile, isAdmin, loading, signOut } = useAuth();
   const [view, setView] = useState<View>(() => (user ? 'app' : 'landing'));
   const [activeTab, setActiveTab] = useState<TabId>('library');
   const [pendingRequestCount, setPendingRequestCount] = useState(0);
 
+  // If auth state changes (sign in/out), sync the view
+  const effectiveView: View = user ? 'app' : view === 'app' ? 'landing' : view;
+
   const visibleTabs = TABS.filter((t) => !t.adminOnly || isAdmin);
   const activeDef = visibleTabs.find((t) => t.id === activeTab) ?? visibleTabs[0];
 
-  const firstName = user?.email
+  const firstName = profile?.full_name
+    ? profile.full_name.split(' ')[0]
+    : user?.email
     ? user.email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
     : '';
 
-  const handleSignOut = () => {
-    signOut();
+  const handleSignOut = async () => {
+    await signOut();
     setView('landing');
     setActiveTab('library');
   };
@@ -36,7 +42,16 @@ function AppShell() {
     setActiveTab(tab);
   };
 
-  if (view === 'landing') {
+  if (loading) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-ink-950">
+        <Loader2 size={32} className="animate-spin text-gold-400/60" />
+        <p className="mt-3 text-sm text-ink-400">Loading...</p>
+      </div>
+    );
+  }
+
+  if (effectiveView === 'landing') {
     return (
       <div key="landing" className="animate-fade-in">
         <LandingPage onSignIn={() => setView('signin')} />
@@ -44,10 +59,26 @@ function AppShell() {
     );
   }
 
-  if (view === 'signin') {
+  if (effectiveView === 'signin') {
     return (
       <div key="signin" className="animate-fade-in">
-        <SignInPage onBack={() => setView('landing')} onSuccess={() => setView('app')} />
+        <SignInPage
+          onBack={() => setView('landing')}
+          onSuccess={() => setView('app')}
+          onSignUp={() => setView('signup')}
+        />
+      </div>
+    );
+  }
+
+  if (effectiveView === 'signup') {
+    return (
+      <div key="signup" className="animate-fade-in">
+        <SignUpPage
+          onBack={() => setView('landing')}
+          onSuccess={() => setView('signin')}
+          onSignIn={() => setView('signin')}
+        />
       </div>
     );
   }

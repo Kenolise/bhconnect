@@ -1,60 +1,113 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import type { Session, User } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
 
-const STORAGE_KEY = 'bh_connect_user';
-
-const ADMIN_EMAILS = new Set(['admin@believershouse.church', 'pastor@believershouse.church']);
-
-interface AuthUser {
+export interface Profile {
+  id: string;
   email: string;
-  isAdmin: boolean;
+  full_name: string;
+  is_admin: boolean;
 }
 
 interface AuthContextValue {
-  user: AuthUser | null;
+  user: User | null;
+  profile: Profile | null;
   isAdmin: boolean;
+  loading: boolean;
+  signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
-  signOut: () => void;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function readStoredUser(): AuthUser | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (typeof parsed?.email === 'string') return parsed as AuthUser;
-    return null;
-  } catch {
-    return null;
-  }
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(() => readStoredUser());
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchProfile = useCallback(async (uid: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, email, full_name, is_admin')
+      .eq('id', uid)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Failed to load profile:', error.message);
+      setProfile(null);
+      return;
+    }
+    setProfile(data as Profile | null);
+  }, []);
 
   useEffect(() => {
-    if (user) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  }, [user]);
+    let mounted = true;
 
-  const signIn = useCallback(async (email: string, _password: string) => {
-    const normalized = email.trim().toLowerCase();
-    const newUser: AuthUser = { email: normalized, isAdmin: ADMIN_EMAILS.has(normalized) };
-    setUser(newUser);
+    supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => {
+      if (!mounted) return;
+      const sessionUser = data.session?.user ?? null;
+      setUser(sessionUser);
+      if (sessionUser) {
+        fetchProfile(sessionUser.id).finally(() => mounted && setLoading(false));
+      } else {
+        setProfile(null);
+        setLoading(false);
+      }
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (!mounted) return;
+        const sessionUser = session?.user ?? null;
+        setUser(sessionUser);
+        if (sessionUser) {
+          (async () => {
+            await fetchProfile(sessionUser.id);
+            if (mounted) setLoading(false);
+          })();
+        } else {
+          setProfile(null);
+          setLoading(false);
+        }
+      }
+    );
+
+    return () => {
+      mounted = false;
+      authListener.subscription.unsubscribe();
+    };
+  }, [fetchProfile]);
+
+  const signUp = useCallback(async (email: string, password: string, fullName: string) => {
+    const { error } = await supabase.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password,
+      options: {
+        data: { full_name: fullName.trim() },
+      },
+    });
+    if (error) throw error;
   }, []);
 
-  const signOut = useCallback(() => {
+  const signIn = useCallback(async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+    if (error) throw error;
+  }, []);
+
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
     setUser(null);
+    setProfile(null);
   }, []);
 
-  const isAdmin = user?.isAdmin ?? false;
+  const isAdmin = profile?.is_admin ?? false;
 
   return (
-    <AuthContext.Provider value={{ user, isAdmin, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, profile, isAdmin, loading, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

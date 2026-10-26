@@ -27,30 +27,27 @@ interface ResourceSheetProps {
   isAdmin: boolean;
 }
 
-type BorrowStep = 'idle' | 'form' | 'submitting' | 'success';
+type BorrowStep = 'idle' | 'submitting' | 'success';
 
 export function ResourceSheet({ resource, onClose, onEdit, onDelete, isAdmin }: ResourceSheetProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [borrowStep, setBorrowStep] = useState<BorrowStep>('idle');
-  const [borrowName, setBorrowName] = useState('');
   const [borrowError, setBorrowError] = useState<string | null>(null);
   const [alreadyPending, setAlreadyPending] = useState(false);
 
   useEffect(() => {
     if (!resource) return;
     document.body.style.overflow = 'hidden';
-    // Reset borrow state when sheet opens for a new book
     setBorrowStep('idle');
-    setBorrowName('');
     setBorrowError(null);
     setAlreadyPending(false);
 
-    if (!isAdmin && user?.email) {
+    if (!isAdmin && user?.id) {
       supabase
         .from('borrow_requests')
         .select('id')
         .eq('book_id', resource.id)
-        .eq('requester_email', user.email)
+        .eq('user_id', user.id)
         .eq('status', 'pending')
         .maybeSingle()
         .then(({ data }) => {
@@ -61,7 +58,7 @@ export function ResourceSheet({ resource, onClose, onEdit, onDelete, isAdmin }: 
     return () => {
       document.body.style.overflow = '';
     };
-  }, [resource, isAdmin, user?.email]);
+  }, [resource, isAdmin, user?.id]);
 
   if (!resource) return null;
 
@@ -73,19 +70,19 @@ export function ResourceSheet({ resource, onClose, onEdit, onDelete, isAdmin }: 
     day: 'numeric',
   });
 
-  const handleBorrowSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!borrowName.trim() || !user?.email) return;
+  const handleBorrow = async () => {
+    if (!user?.id) return;
     setBorrowStep('submitting');
     setBorrowError(null);
     const { error } = await supabase.from('borrow_requests').insert({
       book_id: resource.id,
-      requester_email: user.email,
-      requester_name: borrowName.trim(),
+      requester_email: user.email ?? '',
+      requester_name: profile?.full_name ?? '',
+      user_id: user.id,
     });
     if (error) {
       setBorrowError('Something went wrong. Please try again.');
-      setBorrowStep('form');
+      setBorrowStep('idle');
     } else {
       setBorrowStep('success');
     }
@@ -260,44 +257,18 @@ export function ResourceSheet({ resource, onClose, onEdit, onDelete, isAdmin }: 
                       You already have a pending request for this book. The library team will contact you soon.
                     </p>
                   </div>
-                ) : borrowStep === 'form' || borrowStep === 'submitting' ? (
-                  <form onSubmit={handleBorrowSubmit} className="space-y-3">
-                    <p className="text-[13px] text-ink-400">
-                      Enter your name and we'll let the library team know you'd like to borrow this book.
-                    </p>
-                    <input
-                      type="text"
-                      value={borrowName}
-                      onChange={(e) => setBorrowName(e.target.value)}
-                      placeholder="Your full name"
-                      required
-                      autoFocus
-                      className="w-full rounded-xl border border-ink-600 bg-ink-850 px-4 py-3 text-[15px] text-white placeholder-ink-500 outline-none transition focus:border-gold-400/50 focus:ring-1 focus:ring-gold-400/30"
-                    />
-                    {borrowError && (
-                      <p className="text-[12px] text-red-400">{borrowError}</p>
-                    )}
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setBorrowStep('idle')}
-                        disabled={borrowStep === 'submitting'}
-                        className="flex-1 rounded-xl border border-ink-600 bg-ink-800 px-4 py-3 text-sm font-semibold text-ink-300 transition hover:bg-ink-700 disabled:opacity-50"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={!borrowName.trim() || borrowStep === 'submitting'}
-                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-gold-400 to-gold-500 px-4 py-3 text-sm font-bold text-black transition hover:from-gold-300 hover:to-gold-400 disabled:opacity-50"
-                      >
-                        {borrowStep === 'submitting' && <Loader2 size={15} className="animate-spin" />}
-                        Send Request
-                      </button>
-                    </div>
-                  </form>
+                ) : borrowStep === 'submitting' ? (
+                  <div className="flex flex-col items-center gap-3 py-4">
+                    <Loader2 size={24} className="animate-spin text-gold-400" />
+                    <p className="text-[13px] text-ink-400">Sending your request...</p>
+                  </div>
                 ) : (
                   <div className="space-y-3">
+                    {borrowError && (
+                      <div className="rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-[13px] text-red-400">
+                        {borrowError}
+                      </div>
+                    )}
                     {!resource.url && (
                       <div className="flex items-start gap-3 rounded-xl border border-ink-700 bg-ink-850 p-3.5">
                         <BookOpen size={16} className="mt-0.5 shrink-0 text-gold-400/70" />
@@ -309,7 +280,7 @@ export function ResourceSheet({ resource, onClose, onEdit, onDelete, isAdmin }: 
                       </div>
                     )}
                     <button
-                      onClick={() => setBorrowStep('form')}
+                      onClick={handleBorrow}
                       className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-gold-400 to-gold-500 px-4 py-3.5 text-sm font-bold text-black transition hover:from-gold-300 hover:to-gold-400"
                     >
                       <BookMarked size={16} />

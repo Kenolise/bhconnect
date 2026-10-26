@@ -5,9 +5,10 @@ import { useAuth } from '../context/AuthContext';
 interface SignInPageProps {
   onBack: () => void;
   onSuccess: () => void;
+  onSignUp: () => void;
 }
 
-export function SignInPage({ onBack, onSuccess }: SignInPageProps) {
+export function SignInPage({ onBack, onSuccess, onSignUp }: SignInPageProps) {
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,8 +27,17 @@ export function SignInPage({ onBack, onSuccess }: SignInPageProps) {
     try {
       await signIn(email, password);
       onSuccess();
-    } catch {
-      setError('Something went wrong. Please try again.');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.includes('Invalid login') || msg.includes('invalid credentials')) {
+        setError('Incorrect email or password. Please try again.');
+      } else if (msg.includes('not confirmed') || msg.includes('Email not confirmed')) {
+        setError('Your account is ready. Please try signing in again.');
+      } else if (msg.includes('rate limit') || msg.includes('too many')) {
+        setError('Too many attempts. Please wait a moment and try again.');
+      } else {
+        setError('Something went wrong. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -169,6 +179,19 @@ export function SignInPage({ onBack, onSuccess }: SignInPageProps) {
           </a>{' '}
           to learn more about us.
         </p>
+
+        {/* Sign up link */}
+        <div className="mt-5 text-center">
+          <p className="text-[13px] text-ink-500">
+            Don't have an account?{' '}
+            <button
+              onClick={onSignUp}
+              className="font-semibold text-gold-400 underline underline-offset-2 transition hover:text-gold-300"
+            >
+              Create one
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   );
