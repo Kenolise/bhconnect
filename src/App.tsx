@@ -84,7 +84,7 @@ function AppShell() {
   }
 
   return (
-    <div key="app" className="animate-fade-in min-h-screen bg-ink-950">
+    <div key="app" className="min-h-screen bg-ink-950">
       {/* App header */}
       <header className="fixed left-0 right-0 top-0 z-40 border-b border-ink-700/60 bg-ink-950/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-md items-center justify-between px-4 py-3 pt-[calc(env(safe-area-inset-top)+12px)]">
