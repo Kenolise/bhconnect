@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LogOut, Loader2 } from 'lucide-react';
+import { LogOut, Loader2, Settings } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LandingPage } from './pages/LandingPage';
 import { SignInPage } from './pages/SignInPage';
@@ -8,8 +8,10 @@ import { TABS } from './tabs';
 import type { TabId } from './types';
 import { BottomNav } from './components/BottomNav';
 import { LibraryTab } from './components/LibraryTab';
+import { MembersTab } from './components/MembersTab';
 import { RequestsTab } from './components/RequestsTab';
 import { ComingSoon } from './components/ComingSoon';
+import { ProfileSheet } from './components/ProfileSheet';
 
 type View = 'landing' | 'signin' | 'signup' | 'app';
 
@@ -18,6 +20,7 @@ function AppShell() {
   const [view, setView] = useState<View>(() => (user ? 'app' : 'landing'));
   const [activeTab, setActiveTab] = useState<TabId>('library');
   const [pendingRequestCount, setPendingRequestCount] = useState(0);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   // If auth state changes (sign in/out), sync the view
   const effectiveView: View = user ? 'app' : view === 'app' ? 'landing' : view;
@@ -38,7 +41,7 @@ function AppShell() {
   };
 
   const handleTabChange = (tab: TabId) => {
-    if (tab === 'requests' && !isAdmin) return;
+    if ((tab === 'requests' || tab === 'members') && !isAdmin) return;
     setActiveTab(tab);
   };
 
@@ -111,14 +114,23 @@ function AppShell() {
               )}
             </div>
           </div>
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-1.5 rounded-xl border border-ink-700 bg-ink-800 px-3 py-2 text-[12px] font-medium text-ink-300 transition hover:bg-ink-700 hover:text-white"
-            aria-label="Sign out"
-          >
-            <LogOut size={14} />
-            Sign out
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setProfileOpen(true)}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-ink-700 bg-ink-800 text-ink-300 transition hover:bg-ink-700 hover:text-white"
+              aria-label="Edit profile"
+            >
+              <Settings size={15} />
+            </button>
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-1.5 rounded-xl border border-ink-700 bg-ink-800 px-3 py-2 text-[12px] font-medium text-ink-300 transition hover:bg-ink-700 hover:text-white"
+              aria-label="Sign out"
+            >
+              <LogOut size={14} />
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 
@@ -126,6 +138,8 @@ function AppShell() {
       <main key={activeTab} className="animate-fade-in mx-auto max-w-md pt-[calc(env(safe-area-inset-top)+64px)]">
         {activeTab === 'library' ? (
           <LibraryTab />
+        ) : activeTab === 'members' && isAdmin ? (
+          <MembersTab />
         ) : activeTab === 'requests' && isAdmin ? (
           <RequestsTab onPendingCountChange={setPendingRequestCount} />
         ) : (
@@ -139,6 +153,8 @@ function AppShell() {
         tabs={visibleTabs}
         badges={isAdmin ? { requests: pendingRequestCount } : undefined}
       />
+
+      {profileOpen && <ProfileSheet onClose={() => setProfileOpen(false)} />}
     </div>
   );
 }

@@ -21,8 +21,8 @@ export const TABS: TabDef[] = [
     id: 'members',
     label: 'Members',
     icon: Users,
-    comingSoon: true,
-    description: 'A directory of our church family — find contact info, small groups, and connect with fellow members at Believers House.',
+    adminOnly: true,
+    description: '',
   },
   {
     id: 'sermons',
