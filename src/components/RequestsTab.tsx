@@ -9,16 +9,25 @@ import {
   Mail,
   User,
   BookOpen,
+  PackageCheck,
+  Undo2,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import type { RequestStatus } from '../types';
+import { formatLoanDate, getStatusDisplay } from '../lib/loans';
+import { useNow } from '../hooks/useNow';
+import { StatusPill } from './StatusPill';
 
 interface RequestRow {
   id: string;
   book_id: string;
   requester_email: string;
   requester_name: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: RequestStatus;
   created_at: string;
+  pickup_deadline: string | null;
+  collected_at: string | null;
+  due_at: string | null;
   library_resources: {
     id: string;
     title: string;
@@ -26,23 +35,22 @@ interface RequestRow {
   } | null;
 }
 
-type FilterStatus = 'pending' | 'approved' | 'rejected' | 'all';
+type FilterStatus = 'pending' | 'ready' | 'borrowed' | 'returned' | 'rejected' | 'all';
 
-const STATUS_LABEL: Record<string, string> = {
-  pending: 'Pending',
-  approved: 'Approved',
+const FILTER_LABEL: Record<FilterStatus, string> = {
+  pending: 'Waiting',
+  ready: 'Ready',
+  borrowed: 'On loan',
+  returned: 'Returned',
   rejected: 'Declined',
-};
-
-const STATUS_STYLES: Record<string, string> = {
-  pending: 'bg-amber-500/15 text-amber-300 ring-1 ring-amber-400/30',
-  approved: 'bg-green-500/15 text-green-300 ring-1 ring-green-400/30',
-  rejected: 'bg-red-500/15 text-red-400 ring-1 ring-red-400/30',
+  all: 'All',
 };
 
 interface RequestsTabProps {
   onPendingCountChange: (count: number) => void;
 }
+
+type ActionResult = PromiseLike<{ error: unknown }>;
 
 export function RequestsTab({ onPendingCountChange }: RequestsTabProps) {
   const [requests, setRequests] = useState<RequestRow[]>([]);
@@ -50,6 +58,7 @@ export function RequestsTab({ onPendingCountChange }: RequestsTabProps) {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterStatus>('pending');
   const [actioning, setActioning] = useState<string | null>(null);
+  const now = useNow();
 
   const fetchRequests = useCallback(async () => {
     setLoading(true);
@@ -63,13 +72,16 @@ export function RequestsTab({ onPendingCountChange }: RequestsTabProps) {
         requester_name,
         status,
         created_at,
+        pickup_deadline,
+        collected_at,
+        due_at,
         library_resources (
           id,
           title,
           author
         )
       `)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: true });
 
     if (fetchError) {
       console.error('Failed to load borrow requests:', fetchError);
@@ -87,29 +99,13 @@ export function RequestsTab({ onPendingCountChange }: RequestsTabProps) {
     fetchRequests();
   }, [fetchRequests]);
 
-  const handleApprove = async (request: RequestRow) => {
-    setActioning(request.id);
-    const { error: rpcError } = await supabase.rpc('approve_borrow_request', {
-      request_id: request.id,
-    });
-    if (rpcError) {
-      console.error('Failed to approve request:', rpcError);
-      setError('We could not approve this request. Please refresh and try again.');
-    } else {
-      await fetchRequests();
-    }
-    setActioning(null);
-  };
-
-  const handleReject = async (request: RequestRow) => {
-    setActioning(request.id);
-    const { error: updateError } = await supabase
-      .from('borrow_requests')
-      .update({ status: 'rejected' })
-      .eq('id', request.id);
-    if (updateError) {
-      console.error('Failed to decline request:', updateError);
-      setError('We could not decline this request. Please refresh and try again.');
+  const performAction = async (requestId: string, run: () => ActionResult, failureMessage: string) => {
+    setActioning(requestId);
+    setError(null);
+    const { error: actionError } = await run();
+    if (actionError) {
+      console.error(failureMessage, actionError);
+      setError(failureMessage);
     } else {
       await fetchRequests();
     }
@@ -119,12 +115,12 @@ export function RequestsTab({ onPendingCountChange }: RequestsTabProps) {
   const filtered = filter === 'all' ? requests : requests.filter((r) => r.status === filter);
   const pendingCount = requests.filter((r) => r.status === 'pending').length;
 
-  const FILTER_OPTIONS: { value: FilterStatus; label: string }[] = [
-    { value: 'pending', label: `Pending${pendingCount > 0 ? ` (${pendingCount})` : ''}` },
-    { value: 'approved', label: 'Approved' },
-    { value: 'rejected', label: 'Declined' },
-    { value: 'all', label: 'All' },
-  ];
+  const FILTER_OPTIONS: { value: FilterStatus; label: string }[] = (
+    ['pending', 'ready', 'borrowed', 'returned', 'rejected', 'all'] as FilterStatus[]
+  ).map((value) => ({
+    value,
+    label: value === 'pending' && pendingCount > 0 ? `${FILTER_LABEL[value]} (${pendingCount})` : FILTER_LABEL[value],
+  }));
 
   return (
     <div className="px-4 pb-28 pt-4">
@@ -138,7 +134,7 @@ export function RequestsTab({ onPendingCountChange }: RequestsTabProps) {
             <h1 className="text-2xl font-bold tracking-tight text-white">Requests</h1>
             <p className="text-[13px] text-ink-400">
               {pendingCount > 0
-                ? `${pendingCount} pending request${pendingCount !== 1 ? 's' : ''}`
+                ? `${pendingCount} waiting request${pendingCount !== 1 ? 's' : ''}`
                 : 'Borrow requests from members'}
             </p>
           </div>
@@ -197,7 +193,7 @@ export function RequestsTab({ onPendingCountChange }: RequestsTabProps) {
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <ClipboardList size={36} className="text-ink-600" strokeWidth={1.5} />
           <p className="mt-4 text-[15px] font-medium text-ink-300">
-            {filter === 'pending' ? 'No pending requests' : `No ${filter === 'all' ? '' : filter} requests`}
+            {filter === 'all' ? 'No requests yet' : `No ${FILTER_LABEL[filter].toLowerCase()} requests`}
           </p>
           <p className="mt-1 text-[13px] text-ink-500">
             {filter === 'pending'
@@ -217,6 +213,7 @@ export function RequestsTab({ onPendingCountChange }: RequestsTabProps) {
               month: 'short',
               day: 'numeric',
             });
+            const display = getStatusDisplay({ status: req.status, dueAt: req.due_at }, now);
 
             return (
               <div
@@ -238,9 +235,7 @@ export function RequestsTab({ onPendingCountChange }: RequestsTabProps) {
                       </p>
                     )}
                   </div>
-                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${STATUS_STYLES[req.status]}`}>
-                    {STATUS_LABEL[req.status]}
-                  </span>
+                  <StatusPill display={display} />
                 </div>
 
                 {/* Member info */}
@@ -257,13 +252,31 @@ export function RequestsTab({ onPendingCountChange }: RequestsTabProps) {
                     <Clock size={12} className="shrink-0" />
                     Requested {dateStr}
                   </div>
+                  {req.status === 'ready' && req.pickup_deadline && (
+                    <div className="flex items-center gap-2 text-[12px] text-sky-300/80">
+                      <Clock size={12} className="shrink-0" />
+                      Collect by {formatLoanDate(req.pickup_deadline)}
+                    </div>
+                  )}
+                  {req.status === 'borrowed' && req.collected_at && req.due_at && (
+                    <div className="flex items-center gap-2 text-[12px] text-ink-400">
+                      <Clock size={12} className="shrink-0" />
+                      Collected {formatLoanDate(req.collected_at)} · Due {formatLoanDate(req.due_at)}
+                    </div>
+                  )}
                 </div>
 
-                {/* Actions — only for pending requests */}
+                {/* Actions */}
                 {req.status === 'pending' && (
                   <div className="flex gap-2">
                     <button
-                      onClick={() => handleApprove(req)}
+                      onClick={() =>
+                        performAction(
+                          req.id,
+                          () => supabase.rpc('approve_borrow_request', { request_id: req.id }),
+                          'We could not approve this request. Check that a copy is free and try again.',
+                        )
+                      }
                       disabled={isActioning}
                       className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-green-500/15 px-4 py-2.5 text-[13px] font-semibold text-green-300 ring-1 ring-green-400/30 transition hover:bg-green-500/25 disabled:opacity-50"
                     >
@@ -271,7 +284,13 @@ export function RequestsTab({ onPendingCountChange }: RequestsTabProps) {
                       Approve
                     </button>
                     <button
-                      onClick={() => handleReject(req)}
+                      onClick={() =>
+                        performAction(
+                          req.id,
+                          () => supabase.from('borrow_requests').update({ status: 'rejected' }).eq('id', req.id),
+                          'We could not decline this request. Please refresh and try again.',
+                        )
+                      }
                       disabled={isActioning}
                       className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-red-500/10 px-4 py-2.5 text-[13px] font-semibold text-red-400 ring-1 ring-red-400/30 transition hover:bg-red-500/20 disabled:opacity-50"
                     >
@@ -279,6 +298,40 @@ export function RequestsTab({ onPendingCountChange }: RequestsTabProps) {
                       Decline
                     </button>
                   </div>
+                )}
+
+                {req.status === 'ready' && (
+                  <button
+                    onClick={() =>
+                      performAction(
+                        req.id,
+                        () => supabase.rpc('mark_borrow_collected', { request_id: req.id }),
+                        'We could not mark this book as collected. Please refresh and try again.',
+                      )
+                    }
+                    disabled={isActioning}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-sky-500/15 px-4 py-2.5 text-[13px] font-semibold text-sky-300 ring-1 ring-sky-400/30 transition hover:bg-sky-500/25 disabled:opacity-50"
+                  >
+                    <PackageCheck size={15} />
+                    Mark as collected
+                  </button>
+                )}
+
+                {req.status === 'borrowed' && (
+                  <button
+                    onClick={() =>
+                      performAction(
+                        req.id,
+                        () => supabase.rpc('mark_borrow_returned', { request_id: req.id }),
+                        'We could not mark this book as returned. Please refresh and try again.',
+                      )
+                    }
+                    disabled={isActioning}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-green-500/15 px-4 py-2.5 text-[13px] font-semibold text-green-300 ring-1 ring-green-400/30 transition hover:bg-green-500/25 disabled:opacity-50"
+                  >
+                    <Undo2 size={15} />
+                    Mark as returned
+                  </button>
                 )}
               </div>
             );

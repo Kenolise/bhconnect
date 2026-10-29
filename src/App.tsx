@@ -8,6 +8,7 @@ import { TABS } from './tabs';
 import type { TabId } from './types';
 import { BottomNav } from './components/BottomNav';
 import { LibraryTab } from './components/LibraryTab';
+import { MyBooksTab } from './components/MyBooksTab';
 import { MembersTab } from './components/MembersTab';
 import { RequestsTab } from './components/RequestsTab';
 import { ComingSoon } from './components/ComingSoon';
@@ -138,6 +139,8 @@ function AppShell() {
       <main key={activeTab} className="animate-fade-in mx-auto max-w-md pt-[calc(env(safe-area-inset-top)+64px)]">
         {activeTab === 'library' ? (
           <LibraryTab />
+        ) : activeTab === 'mybooks' ? (
+          <MyBooksTab />
         ) : activeTab === 'members' && isAdmin ? (
           <MembersTab />
         ) : activeTab === 'requests' && isAdmin ? (

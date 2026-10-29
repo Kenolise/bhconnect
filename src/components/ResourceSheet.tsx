@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Trash2,
@@ -6,18 +6,13 @@ import {
   ExternalLink,
   Calendar,
   User,
-  BookOpen,
   Hash,
   Building2,
   Copy,
   ArrowLeft,
-  BookMarked,
-  CheckCircle2,
-  Loader2,
 } from 'lucide-react';
 import type { Resource } from '../types';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../context/AuthContext';
+import { BorrowPanel } from './BorrowPanel';
 
 interface ResourceSheetProps {
   resource: Resource | null;
@@ -27,38 +22,14 @@ interface ResourceSheetProps {
   isAdmin: boolean;
 }
 
-type BorrowStep = 'idle' | 'submitting' | 'success';
-
 export function ResourceSheet({ resource, onClose, onEdit, onDelete, isAdmin }: ResourceSheetProps) {
-  const { user } = useAuth();
-  const [borrowStep, setBorrowStep] = useState<BorrowStep>('idle');
-  const [borrowError, setBorrowError] = useState<string | null>(null);
-  const [alreadyPending, setAlreadyPending] = useState(false);
-
   useEffect(() => {
     if (!resource) return;
     document.body.style.overflow = 'hidden';
-    setBorrowStep('idle');
-    setBorrowError(null);
-    setAlreadyPending(false);
-
-    if (!isAdmin && user?.id) {
-      supabase
-        .from('borrow_requests')
-        .select('id')
-        .eq('book_id', resource.id)
-        .eq('user_id', user.id)
-        .eq('status', 'pending')
-        .maybeSingle()
-        .then(({ data }) => {
-          setAlreadyPending(!!data);
-        });
-    }
-
     return () => {
       document.body.style.overflow = '';
     };
-  }, [resource, isAdmin, user?.id]);
+  }, [resource]);
 
   if (!resource) return null;
 
@@ -69,28 +40,6 @@ export function ResourceSheet({ resource, onClose, onEdit, onDelete, isAdmin }: 
     month: 'long',
     day: 'numeric',
   });
-
-  const handleBorrow = async () => {
-    if (!user?.id) return;
-    setBorrowStep('submitting');
-    setBorrowError(null);
-    const { error } = await supabase.from('borrow_requests').insert({
-      book_id: resource.id,
-    });
-    if (error) {
-      // 23505 = unique violation: a pending request for this book already exists
-      if (error.code === '23505') {
-        setAlreadyPending(true);
-        setBorrowStep('idle');
-        return;
-      }
-      console.error('Borrow request failed:', error);
-      setBorrowError('Something went wrong. Please try again.');
-      setBorrowStep('idle');
-    } else {
-      setBorrowStep('success');
-    }
-  };
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
@@ -246,52 +195,7 @@ export function ResourceSheet({ resource, onClose, onEdit, onDelete, isAdmin }: 
             {/* Member borrow request */}
             {!isAdmin && (
               <div className="mt-6 border-t border-ink-700 pt-5">
-                {borrowStep === 'success' ? (
-                  <div className="flex flex-col items-center gap-3 rounded-2xl border border-green-500/30 bg-green-500/10 p-5 text-center">
-                    <CheckCircle2 size={28} className="text-green-400" />
-                    <p className="text-[15px] font-semibold text-green-300">Request sent!</p>
-                    <p className="text-[13px] text-ink-400">
-                      The library team will be in touch when your book is ready.
-                    </p>
-                  </div>
-                ) : alreadyPending ? (
-                  <div className="flex items-center gap-3 rounded-2xl border border-gold-400/20 bg-gold-400/5 p-4">
-                    <BookMarked size={18} className="shrink-0 text-gold-400/70" />
-                    <p className="text-[13px] text-ink-300">
-                      You already have a pending request for this book. You can request other books while you wait, and the library team will contact you soon.
-                    </p>
-                  </div>
-                ) : borrowStep === 'submitting' ? (
-                  <div className="flex flex-col items-center gap-3 py-4">
-                    <Loader2 size={24} className="animate-spin text-gold-400" />
-                    <p className="text-[13px] text-ink-400">Sending your request...</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {borrowError && (
-                      <div className="rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-[13px] text-red-400">
-                        {borrowError}
-                      </div>
-                    )}
-                    {!resource.url && (
-                      <div className="flex items-start gap-3 rounded-xl border border-ink-700 bg-ink-850 p-3.5">
-                        <BookOpen size={16} className="mt-0.5 shrink-0 text-gold-400/70" />
-                        <p className="text-[13px] text-ink-300">
-                          {isAvailable
-                            ? 'This book is available to borrow.'
-                            : 'This book is currently on loan. You can still request it and we\'ll let you know when it\'s available.'}
-                        </p>
-                      </div>
-                    )}
-                    <button
-                      onClick={handleBorrow}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-gold-400 to-gold-500 px-4 py-3.5 text-sm font-bold text-black transition hover:from-gold-300 hover:to-gold-400"
-                    >
-                      <BookMarked size={16} />
-                      Request to Borrow
-                    </button>
-                  </div>
-                )}
+                <BorrowPanel bookId={resource.id} isAvailable={isAvailable} />
               </div>
             )}
           </div>

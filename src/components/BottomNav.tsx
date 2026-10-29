@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react';
-import { Library, Users, Mic, MessageSquare, HeartHandshake, ClipboardList } from 'lucide-react';
+import { Library, Users, MessageSquare, HeartHandshake, ClipboardList, BookMarked } from 'lucide-react';
 import type { TabId } from '../types';
 
 const ICONS: Record<TabId, typeof Library> = {
   library: Library,
+  mybooks: BookMarked,
   members: Users,
-  sermons: Mic,
   comms: MessageSquare,
   pastoral: HeartHandshake,
   requests: ClipboardList,

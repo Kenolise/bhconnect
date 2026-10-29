@@ -4,6 +4,10 @@
     "send-welcome-email": {
       "hasChanged": false,
       "hash": "e7a708359ffaaa6795954869df491a7e4532a0f2b20bce1597d2677d7e9b0998"
+    },
+    "send-loan-emails": {
+      "hasChanged": false,
+      "hash": "8fb93675bf30f9b96a7b1b8991ee61e30af14bd9c0773844a3310781d7c935cd"
     }
   }
 }

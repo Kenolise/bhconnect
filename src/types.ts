@@ -62,13 +62,6 @@ export interface Resource {
 
 export type ResourceInput = Omit<Resource, 'id' | 'created_at' | 'updated_at'>;
 
-export interface BorrowRequest {
-  id: string;
-  book_id: string;
-  requester_email: string;
-  requester_name: string;
-  status: 'pending' | 'approved' | 'rejected';
-  created_at: string;
-}
+export type RequestStatus = 'pending' | 'ready' | 'borrowed' | 'returned' | 'rejected' | 'expired';
 
-export type TabId = 'library' | 'members' | 'sermons' | 'comms' | 'pastoral' | 'requests';
+export type TabId = 'library' | 'mybooks' | 'members' | 'comms' | 'pastoral' | 'requests';

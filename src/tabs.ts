@@ -1,4 +1,4 @@
-import { Library, Users, Mic, MessageSquare, HeartHandshake, ClipboardList, Sparkles } from 'lucide-react';
+import { Library, Users, MessageSquare, HeartHandshake, ClipboardList, BookMarked, Sparkles } from 'lucide-react';
 import type { TabId } from './types';
 
 export interface TabDef {
@@ -18,18 +18,17 @@ export const TABS: TabDef[] = [
     description: '',
   },
   {
+    id: 'mybooks',
+    label: 'My Books',
+    icon: BookMarked,
+    description: '',
+  },
+  {
     id: 'members',
     label: 'Members',
     icon: Users,
     adminOnly: true,
     description: '',
-  },
-  {
-    id: 'sermons',
-    label: 'Sermons',
-    icon: Mic,
-    comingSoon: true,
-    description: 'Watch and listen to past messages, follow along with sermon series, and catch up on anything you missed.',
   },
   {
     id: 'comms',
